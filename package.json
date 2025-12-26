@@ -1,0 +1,13 @@
+{
+  "name": "anki-cards",
+  "version": "1.0.0",
+  "description": "Generate Anki decks using anki-apkg-export",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "generate": "node index.js"
+  },
+  "dependencies": {
+    "anki-apkg-export": "^4.0.3"
+  }
+}
