@@ -43,6 +43,26 @@ Create JSON files in the `decks/` directory:
 | `cards[].front` | Yes | Front side of the card |
 | `cards[].back` | Yes | Back side of the card |
 | `cards[].tags` | No | Array of tags |
+| `cards[].example` | No | Example sentence using the word |
+| `cards[].exampleTranslation` | No | Translation of the example sentence |
+
+## Example with Context
+
+Use `example` and `exampleTranslation` fields to show words in context:
+
+```json
+{
+  "name": "Vocabulary",
+  "cards": [
+    {
+      "front": "ephemeral",
+      "back": "lasting for a very short time",
+      "example": "The ephemeral beauty of cherry blossoms reminds us to appreciate the moment.",
+      "exampleTranslation": "La belleza efímera de los cerezos en flor nos recuerda apreciar el momento."
+    }
+  ]
+}
+```
 
 ## Output
 

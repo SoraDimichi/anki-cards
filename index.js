@@ -13,11 +13,32 @@ const deckPath = join("decks", deckFile);
 const raw = await readFile(deckPath, "utf-8");
 const deck = JSON.parse(raw);
 
-const apkg = new AnkiExport(deck.name);
+const defaultCss = `.card { font-family: arial; font-size: 20px; text-align: center; background-color: white; }
+.front { color: #c41e3a; font-weight: bold; }
+.back { color: #666; }
+.example { margin-top: 1em; padding: 0.8em; background-color: #fff; border-radius: 8px; font-style: italic; color: #000; }
+.example-translation { margin-top: 0.5em; font-size: 0.85em; color: #888; font-style: normal; }`;
 
-for (const card of deck.cards) {
-  apkg.addCard(card.front, card.back, { tags: card.tags ?? [] });
-}
+const template = {
+  questionFormat: '<div class="front">{{Front}}</div>',
+  answerFormat: '<div class="front">{{Front}}</div><hr id="answer"><div class="back">{{Back}}</div>',
+  ...deck.template,
+  css: deck.template?.css ?? defaultCss,
+};
+
+const apkg = new AnkiExport(deck.name, template);
+
+const buildBack = (card) => {
+  if (!card.example) return card.back;
+  const translation = card.exampleTranslation
+    ? `<div class="example-translation">${card.exampleTranslation}</div>`
+    : "";
+  return `${card.back}<div class="example">${card.example}${translation}</div>`;
+};
+
+deck.cards
+  .map((card) => ({ front: card.front, back: buildBack(card), tags: card.tags ?? [] }))
+  .forEach((card) => apkg.addCard(card.front, card.back, { tags: card.tags }));
 
 await mkdir("dist", { recursive: true });
 const zip = await apkg.save();
