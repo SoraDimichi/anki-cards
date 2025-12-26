@@ -13,10 +13,10 @@ const deckPath = join("decks", deckFile);
 const raw = await readFile(deckPath, "utf-8");
 const deck = JSON.parse(raw);
 
-const defaultCss = `.card { font-family: arial; font-size: 20px; text-align: center; background-color: white; }
-.front { color: #c41e3a; font-weight: bold; }
-.back { color: #666; }
-.example { margin-top: 1em; padding: 0.8em; background-color: #fff; border-radius: 8px; font-style: italic; color: #000; }
+const defaultCss = `.card { font-family: arial; font-size: 20px; text-align: center; background-color: #121212; color: #e0e0e0; }
+.front { color: #ef5350; font-weight: bold; }
+.back { color: #b0b0b0; }
+.example { margin-top: 1em; padding: 0.8em; background-color: #424242; border-radius: 8px; font-style: italic; color: #e0e0e0; }
 .example-translation { margin-top: 0.5em; font-size: 0.85em; color: #888; font-style: normal; }`;
 
 const template = {

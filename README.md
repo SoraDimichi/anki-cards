@@ -56,7 +56,7 @@ Use `example` and `exampleTranslation` fields to show words in context:
   "cards": [
     {
       "front": "Ephemeral",
-      "back": "Lasting for a very short time",
+      "back": "Efímero",
       "example": "The ephemeral beauty of cherry blossoms reminds us to appreciate the moment.",
       "exampleTranslation": "La belleza efímera de los cerezos en flor nos recuerda apreciar el momento."
     }
