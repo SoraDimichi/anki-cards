@@ -1,4 +1,5 @@
 # Anki Cards Generator
+<img width="650" height="243" alt="image" src="https://github.com/user-attachments/assets/eeeacac3-2301-4b0f-9dc3-5db6b46af4f3" />
 
 Generate Anki decks (.apkg) from JSON files.
 
