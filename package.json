@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "description": "Generate Anki decks from JSON files",
   "type": "module",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
-    "generate": "node index.js"
+    "generate": "node --experimental-strip-types index.ts"
   },
   "dependencies": {
     "jszip": "^3.10.1",
     "sha1": "^1.1.1",
     "sql.js": "^1.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/sha1": "^1.1.5"
   }
 }

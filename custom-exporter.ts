@@ -1,12 +1,35 @@
 import sha1 from "sha1";
 import Zip from "jszip";
+import type { Database, SqlJsStatic } from "sql.js";
 
-function createTemplate({
+interface TemplateOptions {
+  questionFormat?: string;
+  answerFormat?: string;
+  css?: string;
+  fields?: string[];
+}
+
+interface ExporterOptions {
+  template: string;
+  sql: SqlJsStatic;
+  fields?: string[];
+}
+
+interface MediaItem {
+  filename: string;
+  data: Buffer;
+}
+
+interface CardOptions {
+  tags?: string | string[];
+}
+
+export function createTemplate({
   questionFormat = "{{Front}}",
   answerFormat = '{{FrontSide}}\n\n<hr id="answer">\n\n{{Back}}',
   css = ".card {\n font-family: arial;\n font-size: 20px;\n text-align: center;\n color: black;\nbackground-color: white;\n}\n",
   fields = ["Front", "Back"],
-} = {}) {
+}: TemplateOptions = {}): string {
   const conf = {
     nextPos: 1,
     estTimes: true,
@@ -210,13 +233,22 @@ function createTemplate({
   `;
 }
 
-function getLastItem(obj) {
+function getLastItem<T>(obj: Record<string, T>): T {
   const keys = Object.keys(obj);
   return obj[keys[keys.length - 1]];
 }
 
 export default class AnkiExporter {
-  constructor(deckName, { template, sql, fields = ["Front", "Back"] }) {
+  private db: Database;
+  private deckName: string;
+  private zip: Zip;
+  private media: MediaItem[];
+  private topDeckId: number;
+  private topModelId: number;
+  private separator: string;
+  private fields: string[];
+
+  constructor(deckName: string, { template, sql, fields = ["Front", "Back"] }: ExporterOptions) {
     this.db = new sql.Database();
     this.db.run(template);
 
@@ -248,10 +280,10 @@ export default class AnkiExporter {
     this._update("update col set models=:models where id=1", { ":models": JSON.stringify(models) });
   }
 
-  save(options) {
+  async save(options?: Zip.JSZipGeneratorOptions): Promise<Buffer> {
     const { zip, db, media } = this;
     const binaryArray = db.export();
-    const mediaObj = media.reduce((prev, curr, idx) => {
+    const mediaObj = media.reduce<Record<number, string>>((prev, curr, idx) => {
       prev[idx] = curr.filename;
       return prev;
     }, {});
@@ -262,22 +294,21 @@ export default class AnkiExporter {
 
     return zip.generateAsync({
       type: "nodebuffer",
-      base64: false,
       compression: "DEFLATE",
       ...options,
-    });
+    }) as Promise<Buffer>;
   }
 
-  addMedia(filename, data) {
+  addMedia(filename: string, data: Buffer): void {
     this.media.push({ filename, data });
   }
 
-  addCard(fieldValues, { tags } = {}) {
+  addCard(fieldValues: string[], { tags }: CardOptions = {}): void {
     const { topDeckId, topModelId, separator } = this;
     const now = Date.now();
     const flds = fieldValues.join(separator);
-    const note_guid = this._getNoteGuid(topDeckId, flds);
-    const note_id = this._getNoteId(note_guid, now);
+    const noteGuid = this._getNoteGuid(topDeckId, flds);
+    const noteId = this._getNoteId(noteGuid, now);
 
     let strTags = "";
     if (typeof tags === "string") {
@@ -289,8 +320,8 @@ export default class AnkiExporter {
     this._update(
       "insert or replace into notes values(:id,:guid,:mid,:mod,:usn,:tags,:flds,:sfld,:csum,:flags,:data)",
       {
-        ":id": note_id,
-        ":guid": note_guid,
+        ":id": noteId,
+        ":guid": noteGuid,
         ":mid": topModelId,
         ":mod": this._getId("notes", "mod", now),
         ":usn": -1,
@@ -303,11 +334,11 @@ export default class AnkiExporter {
       }
     );
 
-    return this._update(
+    this._update(
       "insert or replace into cards values(:id,:nid,:did,:ord,:mod,:usn,:type,:queue,:due,:ivl,:factor,:reps,:lapses,:left,:odue,:odid,:flags,:data)",
       {
-        ":id": this._getCardId(note_id, now),
-        ":nid": note_id,
+        ":id": this._getCardId(noteId, now),
+        ":nid": noteId,
         ":did": topDeckId,
         ":ord": 0,
         ":mod": this._getId("cards", "mod", now),
@@ -328,45 +359,43 @@ export default class AnkiExporter {
     );
   }
 
-  _update(query, obj) {
+  private _update(query: string, obj: Record<string, unknown>): void {
     this.db.run(query, obj);
   }
 
-  _getInitialRowValue(table, column) {
+  private _getInitialRowValue(table: string, column: string): Record<string, any> {
     const query = `select ${column} from ${table}`;
     const result = this.db.exec(query);
-    return JSON.parse(result[0].values[0][0]);
+    return JSON.parse(result[0].values[0][0] as string);
   }
 
-  _checksum(str) {
+  private _checksum(str: string): number {
     return parseInt(sha1(str).substr(0, 8), 16);
   }
 
-  _getId(table, col, ts) {
+  private _getId(table: string, col: string, ts: number): number {
     const query = `select ${col} from ${table} order by ${col} desc limit 1`;
     const res = this.db.exec(query);
-    return res[0] ? Math.max(ts, res[0].values[0][0] + 1) : ts;
+    return res[0] ? Math.max(ts, (res[0].values[0][0] as number) + 1) : ts;
   }
 
-  _getNoteGuid(deckId, flds) {
+  private _getNoteGuid(deckId: number, flds: string): string {
     return sha1(`${deckId}${flds}`).substr(0, 10);
   }
 
-  _getNoteId(guid, ts) {
+  private _getNoteId(guid: string, ts: number): number {
     const query = "select id from notes where guid=:guid";
     const res = this.db.exec(query, { ":guid": guid });
-    return res[0] ? res[0].values[0][0] : ts;
+    return res[0] ? (res[0].values[0][0] as number) : ts;
   }
 
-  _getCardId(nid, ts) {
+  private _getCardId(nid: number, ts: number): number {
     const query = "select id from cards where nid=:nid";
     const res = this.db.exec(query, { ":nid": nid });
-    return res[0] ? res[0].values[0][0] : ts;
+    return res[0] ? (res[0].values[0][0] as number) : ts;
   }
 
-  _tagsToStr(tags) {
+  private _tagsToStr(tags: string[]): string {
     return ` ${tags.join(" ")} `;
   }
 }
-
-export { createTemplate };

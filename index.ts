@@ -1,7 +1,28 @@
 import initSqlJs from "sql.js";
-import AnkiExporter, { createTemplate } from "./custom-exporter.js";
+import AnkiExporter, { createTemplate } from "./custom-exporter.ts";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { basename, join } from "node:path";
+
+interface Card {
+  front: string;
+  back: string;
+  tags?: string[];
+  example?: string;
+  exampleTranslation?: string;
+}
+
+interface DeckTemplate {
+  questionFormat?: string;
+  answerFormat?: string;
+  css?: string;
+}
+
+interface Deck {
+  name: string;
+  tts?: string;
+  cards: Card[];
+  template?: DeckTemplate;
+}
 
 const sql = await initSqlJs();
 
@@ -13,7 +34,7 @@ if (!deckFile) {
 
 const deckPath = join("decks", deckFile);
 const raw = await readFile(deckPath, "utf-8");
-const deck = JSON.parse(raw);
+const deck: Deck = JSON.parse(raw);
 
 const defaultCss = `.card { font-family: arial; font-size: 20px; text-align: center; background-color: #121212; color: #e0e0e0; }
 .front { color: #ef5350; font-weight: bold; }
@@ -24,12 +45,12 @@ const defaultCss = `.card { font-family: arial; font-size: 20px; text-align: cen
 const ttsLang = deck.tts ?? null;
 const fields = ["Front", "Back", "Example", "ExampleTranslation"];
 
-const buildQuestionFormat = () => {
+const buildQuestionFormat = (): string => {
   const tts = ttsLang ? `{{tts ${ttsLang}:Front}}` : "";
   return `${tts}<div class="front">{{Front}}</div>`;
 };
 
-const buildAnswerFormat = () => {
+const buildAnswerFormat = (): string => {
   const ttsFront = ttsLang ? `{{tts ${ttsLang}:Front}}` : "";
   const ttsExample = ttsLang ? `{{tts ${ttsLang}:Example}}` : "";
 
