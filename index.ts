@@ -41,23 +41,21 @@ const defaultCss = `.card { font-family: arial; font-size: 20px; text-align: cen
 .back { color: #e0e0e0; }
 .example { margin-top: 1em; padding: 0.8em; background-color: #383838; border-radius: 8px; font-style: italic; color: #ababab; }
 .example-translation { margin-top: 0.5em; font-size: 0.85em; color: #888; font-style: normal; }
-#hint-btn { cursor: pointer; color: #666; margin-top: 1em; user-select: none; }
-#hint-btn:hover { color: #888; }
-#hint-letters { font-family: monospace; letter-spacing: 0.2em; margin-top: 0.5em; color: #888; font-size: 1.2em; }`;
+#hint-btn { cursor: pointer; color: #666; margin-top: 1em; user-select: none; font-family: monospace; letter-spacing: 0.1em; }
+#hint-btn:hover { color: #888; }`;
 
 const ttsLang = deck.tts ?? null;
 const fields = ["Front", "Back", "Example", "ExampleTranslation"];
 
 const buildHintScript = (answerField: string): string => `
 <div id="hint-btn" onclick="revealNext()">💡 Hint</div>
-<div id="hint-letters"></div>
 <script>
 var answer = "{{${answerField}}}";
 var revealed = 0;
 function revealNext() {
   if (revealed < answer.length) {
     revealed++;
-    document.getElementById("hint-letters").textContent = answer.slice(0, revealed) + "_".repeat(answer.length - revealed);
+    document.getElementById("hint-btn").textContent = answer.slice(0, revealed) + "_".repeat(answer.length - revealed);
   }
 }
 </script>`;
