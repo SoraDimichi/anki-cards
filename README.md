@@ -95,7 +95,7 @@ Each card generates two study directions:
 Reversed cards include a 💡 hint button. Click it to reveal the answer one letter at a time:
 
 ```
-💡 → h____ → he___ → hel__ → hell_ → hello
+💡 → E________ → Ep_______ → Eph______ → ... → Ephemeral
 ```
 
 ### Studying Reversed Cards Only
