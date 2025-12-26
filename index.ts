@@ -37,12 +37,14 @@ const raw = await readFile(deckPath, "utf-8");
 const deck: Deck = JSON.parse(raw);
 
 const defaultCss = `.card { font-family: arial; font-size: 20px; text-align: center; background-color: #121212; color: #e0e0e0; }
+.front, .example-text, .example-translation { margin-top: 0.5em; }
+.example, #hint-btn { margin-top: 1em; }
+.front-container { margin-bottom: 0.5em; }
 .front { color: #ef5350; font-weight: bold; }
-.back { color: #e0e0e0; }
-.example { margin-top: 1em; padding: 0.8em; background-color: #383838; border-radius: 8px; font-style: italic; color: #ababab; }
-.example-translation { margin-top: 0.5em; font-size: 0.85em; color: #888; font-style: normal; }
-#hint-btn { cursor: pointer; color: #666; margin-top: 1em; user-select: none; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace; letter-spacing: 0.1em; }
-#hint-btn:hover { color: #888; }`;
+.example { padding: 0.8em; background-color: #383838; border-radius: 8px; font-style: italic; color: #ababab; }
+.example-translation { font-size: 0.85em; color: #888; font-style: normal; }
+#hint-btn { cursor: pointer; color: #aaa; user-select: none; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace; letter-spacing: 1px; }
+#hint-btn:hover { color: #ccc; }`;
 
 const ttsLang = deck.tts ?? null;
 const fields = ["Front", "Back", "Example", "ExampleTranslation"];
@@ -62,18 +64,18 @@ function revealNext() {
 
 const buildQuestionFormat = (): string => {
   const tts = ttsLang ? `{{tts ${ttsLang}:Front}}` : "";
-  return `${tts}<div class="front">{{Front}}</div>${buildHintScript("Back")}`;
+  return `<div class="front-container">${tts}<div class="front">{{Front}}</div></div>${buildHintScript("Back")}`;
 };
 
 const buildAnswerFormat = (): string => {
   const ttsFront = ttsLang ? `{{tts ${ttsLang}:Front}}` : "";
   const ttsExample = ttsLang ? `{{tts ${ttsLang}:Example}}` : "";
 
-  return `${ttsFront}<div class="front">{{Front}}</div>
+  return `<div class="front-container">${ttsFront}<div class="front">{{Front}}</div></div>
 <hr id="answer">
 <div class="back">{{Back}}</div>
 {{#Example}}
-${ttsExample}<div class="example">{{Example}}{{#ExampleTranslation}}<div class="example-translation">{{ExampleTranslation}}</div>{{/ExampleTranslation}}</div>
+<div class="example">${ttsExample}<div class="example-text">{{Example}}</div>{{#ExampleTranslation}}<div class="example-translation">{{ExampleTranslation}}</div>{{/ExampleTranslation}}</div>
 {{/Example}}`;
 };
 
@@ -87,9 +89,9 @@ const buildReverseAnswerFormat = (): string => {
 
   return `<div class="back">{{Back}}</div>
 <hr id="answer">
-${ttsFront}<div class="front">{{Front}}</div>
+<div class="front-container">${ttsFront}<div class="front">{{Front}}</div></div>
 {{#Example}}
-${ttsExample}<div class="example">{{Example}}{{#ExampleTranslation}}<div class="example-translation">{{ExampleTranslation}}</div>{{/ExampleTranslation}}</div>
+<div class="example">${ttsExample}<div class="example-text">{{Example}}</div>{{#ExampleTranslation}}<div class="example-translation">{{ExampleTranslation}}</div>{{/ExampleTranslation}}</div>
 {{/Example}}`;
 };
 
