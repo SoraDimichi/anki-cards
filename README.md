@@ -81,6 +81,30 @@ Add the `tts` field to enable automatic pronunciation. Anki reads the front and 
 
 **Requirements:** Anki 2.1.50+, AnkiMobile 2.0.84+, or AnkiDroid 2.17+
 
+## Card Modes
+
+Each card generates two study directions:
+
+| Mode     | Question | Answer | Description                    |
+| -------- | -------- | ------ | ------------------------------ |
+| Regular  | Front    | Back   | See the word, recall meaning   |
+| Reversed | Back     | Front  | See the meaning, recall word   |
+
+### Hint Button
+
+Reversed cards include a 💡 hint button. Click it to reveal the answer one letter at a time:
+
+```
+💡 → h____ → he___ → hel__ → hell_ → hello
+```
+
+### Studying Reversed Cards Only
+
+To study only reversed cards, create a filtered deck:
+
+1. Tools → Create Filtered Deck
+2. Search: `"deck:Your Deck" card:2`
+
 ## Output
 
 Generated `.apkg` files are saved to `dist/` and can be imported directly into Anki.

@@ -64,7 +64,7 @@ function revealNext() {
 
 const buildQuestionFormat = (): string => {
   const tts = ttsLang ? `{{tts ${ttsLang}:Front}}` : "";
-  return `<div class="front-container">${tts}<div class="front">{{Front}}</div></div>${buildHintScript("Back")}`;
+  return `<div class="front-container">${tts}<div class="front">{{Front}}</div></div>`;
 };
 
 const buildAnswerFormat = (): string => {
