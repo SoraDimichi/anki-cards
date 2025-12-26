@@ -1,13 +1,15 @@
 {
   "name": "anki-cards",
   "version": "1.0.0",
-  "description": "Generate Anki decks using anki-apkg-export",
+  "description": "Generate Anki decks from JSON files",
   "type": "module",
   "main": "index.js",
   "scripts": {
     "generate": "node index.js"
   },
   "dependencies": {
-    "anki-apkg-export": "^4.0.3"
+    "jszip": "^3.10.1",
+    "sha1": "^1.1.1",
+    "sql.js": "^1.11.0"
   }
 }

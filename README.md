@@ -1,7 +1,10 @@
 # Anki Cards Generator
+
 <img width="650" height="243" alt="image" src="https://github.com/user-attachments/assets/eeeacac3-2301-4b0f-9dc3-5db6b46af4f3" />
 
-Generate Anki decks (.apkg) from JSON files.
+Generate Anki decks (.apkg) from JSON files with support for examples and text-to-speech.
+
+Based on [anki-apkg-export](https://github.com/repeat-space/anki-apkg-export).
 
 ## Setup
 
@@ -32,39 +35,59 @@ Create JSON files in the `decks/` directory:
   "name": "Deck Name",
   "cards": [
     { "front": "Question", "back": "Answer" },
-    { "front": "Another question", "back": "Another answer", "tags": ["tag1", "tag2"] }
+    {
+      "front": "Another question",
+      "back": "Another answer",
+      "tags": ["tag1", "tag2"]
+    }
   ]
 }
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Deck name shown in Anki |
-| `cards` | Yes | Array of cards |
-| `cards[].front` | Yes | Front side of the card |
-| `cards[].back` | Yes | Back side of the card |
-| `cards[].tags` | No | Array of tags |
-| `cards[].example` | No | Example sentence using the word |
-| `cards[].exampleTranslation` | No | Translation of the example sentence |
+| Field                        | Required | Description                                               |
+| ---------------------------- | -------- | --------------------------------------------------------- |
+| `name`                       | Yes      | Deck name shown in Anki                                   |
+| `tts`                        | No       | Language code for text-to-speech (e.g., `es_ES`, `en_US`) |
+| `cards`                      | Yes      | Array of cards                                            |
+| `cards[].front`              | Yes      | Front side of the card                                    |
+| `cards[].back`               | Yes      | Back side of the card                                     |
+| `cards[].tags`               | No       | Array of tags                                             |
+| `cards[].example`            | No       | Example sentence                                          |
+| `cards[].exampleTranslation` | No       | Translation of the example                                |
 
-## Example with Context
-
-Use `example` and `exampleTranslation` fields to show words in context:
+## Full Example
 
 ```json
 {
   "name": "Vocabulary",
+  "tts": "en_US",
   "cards": [
     {
       "front": "Ephemeral",
       "back": "Efímero",
       "example": "The ephemeral beauty of cherry blossoms reminds us to appreciate the moment.",
       "exampleTranslation": "La belleza efímera de los cerezos en flor nos recuerda apreciar el momento."
+      "tags": ["adjective", "advanced"],
     }
   ]
 }
 ```
 
+`tts`, `tags`, `example`, and `exampleTranslation` are optional.
+
+## Text-to-Speech (TTS)
+
+Add the `tts` field to enable automatic pronunciation. Anki reads the front and example aloud. See [language codes](https://en.wikipedia.org/wiki/IETF_language_tag).
+
+**Requirements:** Anki 2.1.50+, AnkiMobile 2.0.84+, or AnkiDroid 2.17+
+
 ## Output
 
 Generated `.apkg` files are saved to `dist/` and can be imported directly into Anki.
+
+## References
+
+- [Anki Manual - Field Replacements](https://docs.ankiweb.net/templates/fields.html)
+- [Anki Manual - Conditional Replacement](https://docs.ankiweb.net/templates/generation.html)
+- [AnkiMobile TTS](https://docs.ankimobile.net/tts.html)
+- [anki-apkg-export](https://github.com/repeat-space/anki-apkg-export)

@@ -1,7 +1,9 @@
-import pkg from "anki-apkg-export";
-const AnkiExport = pkg.default;
+import initSqlJs from "sql.js";
+import AnkiExporter, { createTemplate } from "./custom-exporter.js";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { basename, join } from "node:path";
+
+const sql = await initSqlJs();
 
 const deckFile = process.argv[2];
 if (!deckFile) {
@@ -19,26 +21,48 @@ const defaultCss = `.card { font-family: arial; font-size: 20px; text-align: cen
 .example { margin-top: 1em; padding: 0.8em; background-color: #383838; border-radius: 8px; font-style: italic; color: #ababab; }
 .example-translation { margin-top: 0.5em; font-size: 0.85em; color: #888; font-style: normal; }`;
 
-const template = {
-  questionFormat: '<div class="front">{{Front}}</div>',
-  answerFormat: '<div class="front">{{Front}}</div><hr id="answer"><div class="back">{{Back}}</div>',
-  ...deck.template,
-  css: deck.template?.css ?? defaultCss,
+const ttsLang = deck.tts ?? null;
+const fields = ["Front", "Back", "Example", "ExampleTranslation"];
+
+const buildQuestionFormat = () => {
+  const tts = ttsLang ? `{{tts ${ttsLang}:Front}}` : "";
+  return `${tts}<div class="front">{{Front}}</div>`;
 };
 
-const apkg = new AnkiExport(deck.name, template);
+const buildAnswerFormat = () => {
+  const ttsFront = ttsLang ? `{{tts ${ttsLang}:Front}}` : "";
+  const ttsExample = ttsLang ? `{{tts ${ttsLang}:Example}}` : "";
 
-const buildBack = (card) => {
-  if (!card.example) return card.back;
-  const translation = card.exampleTranslation
-    ? `<div class="example-translation">${card.exampleTranslation}</div>`
-    : "";
-  return `${card.back}<div class="example">${card.example}${translation}</div>`;
+  return `${ttsFront}<div class="front">{{Front}}</div>
+<hr id="answer">
+<div class="back">{{Back}}</div>
+{{#Example}}
+${ttsExample}<div class="example">{{Example}}{{#ExampleTranslation}}<div class="example-translation">{{ExampleTranslation}}</div>{{/ExampleTranslation}}</div>
+{{/Example}}`;
 };
+
+const css = deck.template?.css ?? defaultCss;
+
+const template = createTemplate({
+  questionFormat: deck.template?.questionFormat ?? buildQuestionFormat(),
+  answerFormat: deck.template?.answerFormat ?? buildAnswerFormat(),
+  css,
+  fields,
+});
+
+const apkg = new AnkiExporter(deck.name, { template, sql, fields });
 
 deck.cards
-  .map((card) => ({ front: card.front, back: buildBack(card), tags: card.tags ?? [] }))
-  .forEach((card) => apkg.addCard(card.front, card.back, { tags: card.tags }));
+  .map((card) => ({
+    fields: [
+      card.front,
+      card.back,
+      card.example ?? "",
+      card.exampleTranslation ?? "",
+    ],
+    tags: card.tags ?? [],
+  }))
+  .forEach((card) => apkg.addCard(card.fields, { tags: card.tags }));
 
 await mkdir("dist", { recursive: true });
 const zip = await apkg.save();
