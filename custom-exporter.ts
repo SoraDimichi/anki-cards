@@ -5,6 +5,8 @@ import type { Database, SqlJsStatic, BindParams } from "sql.js";
 interface TemplateOptions {
   questionFormat?: string;
   answerFormat?: string;
+  reverseQuestionFormat?: string;
+  reverseAnswerFormat?: string;
   css?: string;
   fields?: string[];
 }
@@ -13,6 +15,7 @@ interface ExporterOptions {
   template: string;
   sql: SqlJsStatic;
   fields?: string[];
+  cardCount?: number;
 }
 
 interface MediaItem {
@@ -82,9 +85,12 @@ interface AnkiDeck {
 export function createTemplate({
   questionFormat = "{{Front}}",
   answerFormat = '{{FrontSide}}\n\n<hr id="answer">\n\n{{Back}}',
+  reverseQuestionFormat,
+  reverseAnswerFormat,
   css = ".card {\n font-family: arial;\n font-size: 20px;\n text-align: center;\n color: black;\nbackground-color: white;\n}\n",
   fields = ["Front", "Back"],
 }: TemplateOptions = {}): string {
+  const hasReverse = reverseQuestionFormat && reverseAnswerFormat;
   const conf = {
     nextPos: 1,
     estTimes: true,
@@ -111,6 +117,34 @@ export function createTemplate({
     size: 20,
   }));
 
+  const tmpls: AnkiTemplate[] = [
+    {
+      name: "Card 1",
+      qfmt: questionFormat,
+      did: null,
+      bafmt: "",
+      afmt: answerFormat,
+      ord: 0,
+      bqfmt: "",
+    },
+  ];
+
+  if (hasReverse) {
+    tmpls.push({
+      name: "Card 2",
+      qfmt: reverseQuestionFormat,
+      did: null,
+      bafmt: "",
+      afmt: reverseAnswerFormat,
+      ord: 1,
+      bqfmt: "",
+    });
+  }
+
+  const req: [number, string, number[]][] = hasReverse
+    ? [[0, "all", [0]], [1, "all", [1]]]
+    : [[0, "all", [0]]];
+
   const models = {
     1388596687391: {
       veArs: [],
@@ -118,22 +152,12 @@ export function createTemplate({
       tags: ["Tag"],
       did: 1435588830424,
       usn: -1,
-      req: [[0, "all", [0]]],
+      req,
       flds,
       sortf: 0,
       latexPre:
         "\\documentclass[12pt]{article}\n\\special{papersize=3in,5in}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amssymb,amsmath}\n\\pagestyle{empty}\n\\setlength{\\parindent}{0in}\n\\begin{document}\n",
-      tmpls: [
-        {
-          name: "Card 1",
-          qfmt: questionFormat,
-          did: null,
-          bafmt: "",
-          afmt: answerFormat,
-          ord: 0,
-          bqfmt: "",
-        },
-      ],
+      tmpls,
       latexPost: "\\end{document}",
       type: 0,
       id: 1388596687391,
@@ -302,30 +326,32 @@ export default class AnkiExporter {
   private topModelId: number;
   private separator: string;
   private fields: string[];
+  private cardCount: number;
+  private nextId: number;
 
-  constructor(deckName: string, { template, sql, fields = ["Front", "Back"] }: ExporterOptions) {
+  constructor(deckName: string, { template, sql, fields = ["Front", "Back"], cardCount = 1 }: ExporterOptions) {
     this.db = new sql.Database();
     this.db.run(template);
 
     const now = Date.now();
-    const topDeckId = this.getId("cards", "did", now);
-    const topModelId = this.getId("notes", "mid", now);
 
     this.deckName = deckName;
     this.zip = new Zip();
     this.media = [];
-    this.topDeckId = topDeckId;
-    this.topModelId = topModelId;
+    this.topDeckId = now;
+    this.topModelId = now + 1;
     this.separator = "\u001F";
     this.fields = fields;
+    this.cardCount = cardCount;
+    this.nextId = now + 2;
 
     const decks = this.getInitialRowValue<AnkiDeck>("col", "decks");
     const oldDeckKey = getLastKey(decks);
     const deck = decks[oldDeckKey];
     deck.name = this.deckName;
-    deck.id = topDeckId;
+    deck.id = this.topDeckId;
     delete decks[oldDeckKey];
-    decks[topDeckId] = deck;
+    decks[this.topDeckId] = deck;
     this.update("update col set decks=:decks where id=1", { ":decks": JSON.stringify(decks) });
 
     const models = this.getInitialRowValue<AnkiModel>("col", "models");
@@ -333,9 +359,9 @@ export default class AnkiExporter {
     const model = models[oldModelKey];
     model.name = this.deckName;
     model.did = this.topDeckId;
-    model.id = topModelId;
+    model.id = this.topModelId;
     delete models[oldModelKey];
-    models[topModelId] = model;
+    models[this.topModelId] = model;
     this.update("update col set models=:models where id=1", { ":models": JSON.stringify(models) });
   }
 
@@ -363,11 +389,10 @@ export default class AnkiExporter {
   }
 
   addCard(fieldValues: string[], { tags }: CardOptions = {}): void {
-    const { topDeckId, topModelId, separator } = this;
-    const now = Date.now();
+    const { topDeckId, topModelId, separator, cardCount } = this;
     const flds = fieldValues.join(separator);
     const noteGuid = this.getNoteGuid(topDeckId, flds);
-    const noteId = this.getNoteId(noteGuid, now);
+    const noteId = this.nextId++;
 
     let strTags = "";
     if (typeof tags === "string") {
@@ -382,7 +407,7 @@ export default class AnkiExporter {
         ":id": noteId,
         ":guid": noteGuid,
         ":mid": topModelId,
-        ":mod": this.getId("notes", "mod", now),
+        ":mod": noteId,
         ":usn": -1,
         ":tags": strTags,
         ":flds": flds,
@@ -393,29 +418,32 @@ export default class AnkiExporter {
       }
     );
 
-    this.update(
-      "insert or replace into cards values(:id,:nid,:did,:ord,:mod,:usn,:type,:queue,:due,:ivl,:factor,:reps,:lapses,:left,:odue,:odid,:flags,:data)",
-      {
-        ":id": this.getCardId(noteId, now),
-        ":nid": noteId,
-        ":did": topDeckId,
-        ":ord": 0,
-        ":mod": this.getId("cards", "mod", now),
-        ":usn": -1,
-        ":type": 0,
-        ":queue": 0,
-        ":due": 179,
-        ":ivl": 0,
-        ":factor": 0,
-        ":reps": 0,
-        ":lapses": 0,
-        ":left": 0,
-        ":odue": 0,
-        ":odid": 0,
-        ":flags": 0,
-        ":data": "",
-      }
-    );
+    for (let ord = 0; ord < cardCount; ord++) {
+      const cardId = this.nextId++;
+      this.update(
+        "insert or replace into cards values(:id,:nid,:did,:ord,:mod,:usn,:type,:queue,:due,:ivl,:factor,:reps,:lapses,:left,:odue,:odid,:flags,:data)",
+        {
+          ":id": cardId,
+          ":nid": noteId,
+          ":did": topDeckId,
+          ":ord": ord,
+          ":mod": cardId,
+          ":usn": -1,
+          ":type": 0,
+          ":queue": 0,
+          ":due": 179 + ord,
+          ":ivl": 0,
+          ":factor": 0,
+          ":reps": 0,
+          ":lapses": 0,
+          ":left": 0,
+          ":odue": 0,
+          ":odid": 0,
+          ":flags": 0,
+          ":data": "",
+        }
+      );
+    }
   }
 
   private update(query: string, params: BindParams): void {
@@ -432,26 +460,8 @@ export default class AnkiExporter {
     return parseInt(sha1(str).substr(0, 8), 16);
   }
 
-  private getId(table: string, col: string, ts: number): number {
-    const query = `select ${col} from ${table} order by ${col} desc limit 1`;
-    const res = this.db.exec(query);
-    return res[0] ? Math.max(ts, (res[0].values[0][0] as number) + 1) : ts;
-  }
-
   private getNoteGuid(deckId: number, flds: string): string {
     return sha1(`${deckId}${flds}`).substr(0, 10);
-  }
-
-  private getNoteId(guid: string, ts: number): number {
-    const query = "select id from notes where guid=:guid";
-    const res = this.db.exec(query, { ":guid": guid });
-    return res[0] ? (res[0].values[0][0] as number) : ts;
-  }
-
-  private getCardId(nid: number, ts: number): number {
-    const query = "select id from cards where nid=:nid";
-    const res = this.db.exec(query, { ":nid": nid });
-    return res[0] ? (res[0].values[0][0] as number) : ts;
   }
 
   private tagsToStr(tags: string[]): string {
