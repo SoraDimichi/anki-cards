@@ -1,0 +1,53 @@
+.card {
+  font-family: arial;
+  font-size: 20px;
+  text-align: center;
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+.front,
+.example-text,
+.example-translation {
+  margin-top: 0.5em;
+}
+
+.example,
+#hint-btn {
+  margin-top: 1em;
+}
+
+.front-container {
+  margin-bottom: 0.5em;
+}
+
+.front {
+  color: #ef5350;
+  font-weight: bold;
+}
+
+.example {
+  padding: 0.8em;
+  background-color: #383838;
+  border-radius: 8px;
+  font-style: italic;
+  color: #ababab;
+}
+
+.example-translation {
+  font-size: 0.85em;
+  color: #888;
+  font-style: normal;
+}
+
+#hint-btn {
+  cursor: pointer;
+  color: #aaa;
+  user-select: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace;
+  letter-spacing: 1px;
+}
+
+#hint-btn:hover {
+  color: #ccc;
+}
